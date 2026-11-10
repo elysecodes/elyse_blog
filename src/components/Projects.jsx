@@ -1,35 +1,18 @@
-const projects = [
-  {
-    title: 'E-Commerce Platform',
-    desc: 'A full-featured online store with product catalog, shopping cart, secure checkout via Stripe, and an admin dashboard for managing inventory and orders.',
-    tags: ['react', 'node.js', 'stripe', 'mongodb'],
-    image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600&h=400&fit=crop',
-    link: '#',
-  },
-  {
-    title: 'Task Manager Pro',
-    desc: 'A collaborative project management tool with real-time updates, drag-and-drop Kanban boards, team chat, and deadline tracking.',
-    tags: ['next.js', 'socket.io', 'postgresql', 'redis'],
-    image: 'https://images.unsplash.com/photo-1611224923853-80b023f02d71?w=600&h=400&fit=crop',
-    link: '#',
-  },
-  {
-    title: 'Weather Dashboard',
-    desc: 'An interactive weather forecasting app with 7-day forecasts, radar maps, location-based alerts, and beautiful data visualizations.',
-    tags: ['react', 'd3.js', 'openweather api', 'mapbox'],
-    image: 'https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?w=600&h=400&fit=crop',
-    link: '#',
-  },
-  {
-    title: 'Mobile Banking App',
-    desc: 'A cross-platform mobile banking application featuring transaction history, QR code payments, and biometric authentication.',
-    tags: ['flutter', 'firebase', 'rest api', 'kotlin'],
-    image: 'https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=600&h=400&fit=crop',
-    link: '#',
-  },
-]
+import { useEffect, useState } from 'react'
+import { fetchProjects } from '../lib/api'
+import { PROJECTS } from '../lib/fallbackData'
 
 export default function Projects() {
+  const [projects, setProjects] = useState(PROJECTS)
+
+  useEffect(() => {
+    let active = true
+    fetchProjects()
+      .then((data) => { if (active && Array.isArray(data)) setProjects(data) })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
   return (
     <section id="projects" className="projects" aria-label="Projects">
       <div className="projects-header">
@@ -41,16 +24,18 @@ export default function Projects() {
       </div>
       <div className="projects-grid" role="list">
         {projects.map((p, i) => (
-          <a href={p.link} className="project-card" key={i} target="_blank" rel="noreferrer" role="listitem" aria-label={`${p.title} — ${p.desc}`}>
+          <a href={p.link || '#'} className="project-card" key={p.id ?? p.title} target="_blank" rel="noreferrer" role="listitem" aria-label={`${p.title} — ${p.description}`}>
             <div className="project-card-img">
-              <img src={p.image} alt={`Screenshot of ${p.title}`} loading="lazy" width="600" height="375" />
+              {p.image_url && (
+                <img src={p.image_url} alt={`Screenshot of ${p.title}`} loading="lazy" width="600" height="375" />
+              )}
               <span className="project-card-num" aria-hidden="true">0{i + 1}</span>
             </div>
             <div className="project-card-body">
               <h3 className="project-card-title">{p.title}</h3>
-              <p className="project-card-desc">{p.desc}</p>
+              <p className="project-card-desc">{p.description}</p>
               <ul className="project-card-tags">
-                {p.tags.map((t) => (
+                {(p.tags ?? []).map((t) => (
                   <li key={t}>{t}</li>
                 ))}
               </ul>

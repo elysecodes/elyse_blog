@@ -1,7 +1,5 @@
 import { useState } from 'react'
-
-const FORM_ENDPOINT = 'https://api.web3forms.com/submit'
-const ACCESS_KEY = '6d65e425-e9fc-4cab-a4ff-8b487eb0b17c'
+import { submitContact } from '../lib/api'
 
 const initialValues = { name: '', email: '', message: '' }
 
@@ -37,29 +35,16 @@ export default function ContactForm() {
     if (Object.keys(next).some((key) => next[key])) return
 
     setStatus('sending')
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          access_key: ACCESS_KEY,
-          name: values.name,
-          email: values.email,
-          message: values.message,
-          subject: 'Website Contact Form',
-        }),
-        signal: controller.signal,
+      await submitContact({
+        name: values.name.trim(),
+        email: values.email.trim(),
+        message: values.message.trim(),
       })
-      const data = await res.json().catch(() => null)
-      if (!res.ok || !data || String(data.success) !== 'true') throw new Error('Submit failed')
       setStatus('success')
       setValues(initialValues)
     } catch {
       setStatus('error')
-    } finally {
-      clearTimeout(timeout)
     }
   }
 

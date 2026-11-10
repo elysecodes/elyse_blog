@@ -1,13 +1,13 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { submitGuestbook, fetchGuestbook } from '../lib/api'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 const Globe3D = lazy(() => import('./Globe3D'))
 
 const STORAGE_KEY = 'elyse-guestbook'
-const FORM_ENDPOINT = 'https://api.web3forms.com/submit'
-const ACCESS_KEY = '6d65e425-e9fc-4cab-a4ff-8b487eb0b17c'
 const MAX_MESSAGE = 280
 
-const readEntries = () => {
+const readLocalEntries = () => {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
@@ -18,7 +18,7 @@ const readEntries = () => {
   }
 }
 
-const writeEntries = (entries) => {
+const writeLocalEntries = (entries) => {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries))
   } catch {
@@ -35,18 +35,40 @@ const formatDate = (ts) =>
   new Date(ts).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
 
 export default function GuestBook() {
-  const [entries, setEntries] = useState(readEntries)
+  const [entries, setEntries] = useState(() => (isSupabaseConfigured ? [] : readLocalEntries()))
   const [values, setValues] = useState({ name: '', message: '' })
   const [errors, setErrors] = useState({})
   const [status, setStatus] = useState('idle')
+  const [loading, setLoading] = useState(isSupabaseConfigured)
   const firstRun = useRef(true)
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return undefined
+    let active = true
+    fetchGuestbook()
+      .then((rows) => {
+        if (!active) return
+        setEntries(
+          (rows ?? []).map((r) => ({
+            id: r.id,
+            name: r.name,
+            message: r.message,
+            createdAt: Date.parse(r.created_at),
+          })),
+        )
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [])
+
+  useEffect(() => {
+    if (isSupabaseConfigured) return
     if (firstRun.current) {
       firstRun.current = false
       return
     }
-    writeEntries(entries)
+    writeLocalEntries(entries)
   }, [entries])
 
   const handleChange = (e) => {
@@ -75,30 +97,14 @@ export default function GuestBook() {
     }
 
     setStatus('sending')
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const res = await fetch(FORM_ENDPOINT, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-          access_key: ACCESS_KEY,
-          name: entry.name,
-          message: entry.message,
-          subject: 'Website Guest Book Sign In',
-        }),
-        signal: controller.signal,
-      })
-      const data = await res.json().catch(() => null)
-      if (!res.ok || !data || String(data.success) !== 'true') throw new Error('Submit failed')
+      await submitGuestbook({ name: entry.name, message: entry.message })
       setEntries((prev) => [entry, ...prev])
       setValues({ name: '', message: '' })
       setStatus('success')
       window.setTimeout(() => setStatus('idle'), 3200)
     } catch {
       setStatus('error')
-    } finally {
-      clearTimeout(timeout)
     }
   }
 
@@ -156,7 +162,7 @@ export default function GuestBook() {
           </button>
           {status === 'success' && (
             <p className="contact-form-status is-success" role="status">
-              Thanks! Your note is signed in and on its way to my inbox.
+              Thanks! Your note is signed in.
             </p>
           )}
           {status === 'error' && (
@@ -169,9 +175,11 @@ export default function GuestBook() {
 
         <div className="guestbook-entries">
           <p className="guestbook-count">
-            {entries.length === 0
-              ? 'No entries yet — be the first.'
-              : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
+            {loading
+              ? 'Loading entries…'
+              : entries.length === 0
+                ? 'No entries yet — be the first.'
+                : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
           </p>
           {entries.length > 0 && (
             <ul className="guestbook-list" role="list">

@@ -1,22 +1,28 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import SkillsChart from './SkillsChart'
-
-const skills = [
-  { name: 'HTML', category: 'Languages', level: 92, desc: 'Semantic markup that keeps pages structured, accessible and search-engine friendly.' },
-  { name: 'CSS', category: 'Languages', level: 88, desc: 'Styling the web — responsive layouts, motion and polished design systems.' },
-  { name: 'JavaScript', category: 'Languages', level: 90, desc: 'Core language for modern web apps, powering interactive UI logic and full-stack APIs.' },
-  { name: 'React', category: 'Frontend', level: 88, desc: 'Component-based library for building fast, reusable and interactive interfaces.' },
-  { name: 'Next.js', category: 'Frontend', level: 78, desc: 'Full-stack React framework with SSR and static generation for performance.' },
-  { name: 'PHP', category: 'Backend', level: 80, desc: 'Server-side scripting for reliable, maintainable web backends.' },
-  { name: 'Laravel', category: 'Backend', level: 75, desc: 'Elegant PHP framework for rapid, testable application development.' },
-  { name: 'Node.js', category: 'Backend', level: 82, desc: 'JavaScript on the server for fast, event-driven APIs and tooling.' },
-  { name: 'MySQL', category: 'Backend', level: 76, desc: 'Relational database design, modeling and optimization at scale.' },
-  { name: 'Git', category: 'Tools', level: 85, desc: 'Version control for tracking changes, collaboration and confident shipping.' },
-]
+import { fetchSkills } from '../lib/api'
+import { SKILLS } from '../lib/fallbackData'
 
 export default function Skills() {
-  const [selectedName, setSelectedName] = useState(skills[0].name)
+  const [skills, setSkills] = useState(SKILLS)
+  const [selectedName, setSelectedName] = useState(SKILLS[0].name)
+
+  useEffect(() => {
+    let active = true
+    fetchSkills()
+      .then((data) => {
+        if (!active || !Array.isArray(data)) return
+        setSkills(data)
+        if (data.length) {
+          setSelectedName((prev) => (data.some((s) => s.name === prev) ? prev : data[0].name))
+        }
+      })
+      .catch(() => {})
+    return () => { active = false }
+  }, [])
+
   const selected = skills.find((s) => s.name === selectedName) ?? skills[0]
+  if (!selected) return null
 
   return (
     <section id="skills" className="skills" aria-label="Skills">
@@ -50,7 +56,7 @@ export default function Skills() {
               />
             </div>
             <p className="skill-panel-desc" aria-live="polite">
-              {selected.desc}
+              {selected.description}
             </p>
           </div>
         </aside>

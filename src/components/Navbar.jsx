@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import ThemeToggle from './ThemeToggle'
+import { useSiteSettings } from '../lib/siteSettings'
 
 const links = ['About', 'Skills', 'Contact']
 
 export default function Navbar() {
+  const settings = useSiteSettings()
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [active, setActive] = useState('')
@@ -61,7 +63,7 @@ export default function Navbar() {
     <nav className={`navbar ${scrolled ? 'scrolled' : ''}`} role="navigation" aria-label="Main navigation">
       <div className="nav-content">
         <Link to="/" className="nav-logo" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          Elyse
+          {settings.name}
         </Link>
         <button
           className="hamburger"
@@ -85,6 +87,11 @@ export default function Navbar() {
           <li role="none">
             <a role="menuitem" onClick={() => { navigate('/projects'); setMenuOpen(false) }} className={location.pathname === '/projects' ? 'active' : ''} tabIndex={0}>
               Projects
+            </a>
+          </li>
+          <li role="none">
+            <a role="menuitem" onClick={() => { navigate('/blog'); setMenuOpen(false) }} className={location.pathname.startsWith('/blog') ? 'active' : ''} tabIndex={0}>
+              Blog
             </a>
           </li>
           <li role="none">
