@@ -5,7 +5,7 @@
   <title>Redirecting…</title>
   <script>
     var base = '/elyse_blog'
-    var path = location.pathname.replace(new RegExp('^' + base), '') || '/'
+    var path = (location.pathname.replace(new RegExp('^' + base), '') || '/').replace(/\/{2,}/g, '/')
     sessionStorage.setItem('gh-pages-redirect', path)
     location.replace(base + '/')
   </script>

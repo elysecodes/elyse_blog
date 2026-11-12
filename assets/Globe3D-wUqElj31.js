@@ -1,4 +1,4 @@
-import{r as wa,j as Cl}from"./index-ff50R_UR.js";/**
+import{r as wa,j as Cl}from"./index-BBq3Xxyz.js";/**
  * @license
  * Copyright 2010-2026 Three.js Authors
  * SPDX-License-Identifier: MIT
